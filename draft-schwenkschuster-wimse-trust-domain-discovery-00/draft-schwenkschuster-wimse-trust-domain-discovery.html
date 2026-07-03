@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>WIMSE Trust Domain Discovery</title>
+<meta content="Arndt Schwenkschuster" name="author">
+<meta content="Yaroslav Rosomakho" name="author">
+<meta content="
+       The WIMSE architecture scopes workload identifiers to a trust domain. To validate a workload identity credential, a relying party must securely obtain the cryptographic trust anchors associated with the credential's trust domain. The WIMSE architecture requires that this mapping between a trust domain and its trust anchors is obtained through a secure mechanism, but leaves that mechanism undefined. 
+       This document defines such a mechanism for open environments in which no prior trust relationship exists between the relying party and the trust domain. It specifies the WIMSE Trust Bundle, a document that conveys the trust anchors of a trust domain for both JWT-based and X.509-based workload identity credentials, and a discovery mechanism based on a well-known HTTPS endpoint that allows a relying party to resolve a trust domain name to its trust bundle on demand. 
+    " name="description">
+<meta content="xml2rfc 3.34.0" name="generator">
+<meta content="workload" name="keyword">
+<meta content="identity" name="keyword">
+<meta content="trust domain" name="keyword">
+<meta content="discovery" name="keyword">
+<meta content="draft-schwenkschuster-wimse-trust-domain-discovery-latest" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.34.0
+    Python 3.14.5
+    ConfigArgParse 1.7.5
+    google-i18n-address 3.1.1
+    intervaltree 3.2.1
+    Jinja2 3.1.6
+    lxml 6.1.1
+    natsort 8.4.0
+    platformdirs 4.10.0
+    pycountry 24.6.1
+    PyYAML 6.0.3
+    requests 2.33.1
+    wcwidth 0.8.2
+-->
+<link href="draft-schwenkschuster-wimse-trust-domain-discovery.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Lora SemiBold'), local('Lora-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+}
+
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: light dark;
+  --background-color: #fff;
+  --text-color: #222;
+  --title-color: #191919;
+  --link-color: #2a6496;
+  --highlight-color: #f9f9f9;
+  --line-color: #eee;
+  --pilcrow-weak: #ddd;
+  --pilcrow-strong: #bbb;
+  --small-font-size: 14.5px;
+  --font-mono: 'Oxygen Mono', monospace;
+  --font-title: "Sofia Sans Semi Condensed", sans-serif;
+  scrollbar-color: #bbb #eee;
+}
+body {
+  max-width: 600px;
+  margin: 75px auto;
+  padding: 0 5px;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  font: 16px/22px "Lora", serif;
+  scroll-behavior: smooth;
+}
+
+.ears {
+  display: none;
+}
+
+/* headings */
+section {
+  clear: both;
+}
+.section-number {
+  padding-right: 0.5em;
+}
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  font-weight: 680;
+  margin: 0.8em 0 0.3em;
+  font-size-adjust: 0.5;
+  color: var(--title-color);
+}
+h1 {
+  &#title {
+    font-size: 32px;
+    line-height: 40px;
+    clear: both;
+    margin: 1.5em 0 0.2em;
+  }
+  &#rfcnum {
+    margin: 1.5em 0 0.2em;
+    & + h1#title {
+      margin: 0.2em 0;
+    }
+  }
+}
+
+h1, h2, h3 {
+  font-size: 22px;
+  line-height: 27px;
+}
+h4, h5, h6 {
+  font-size: 20px;
+  line-height: 24px;
+}
+
+/* general structure */
+.author {
+  padding-bottom: 0.3em;
+  vertical-align: top;
+}
+#abstract+p {
+  font-size: 18px;
+  line-height: 24px;
+  & code, & samp, & tt {
+    font-size: 16px;
+    line-height: 0;
+  }
+}
+
+p {
+  padding: 0;
+  margin: 0.5em 0;
+  text-align: left;
+}
+div {
+  margin: 0;
+}
+.alignRight {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    margin: 0;
+    float: right;
+    clear: both;
+  }
+  & > *:nth-child(2) {
+    clear: both;
+    display: block;
+    border: none;
+  }
+}
+svg {
+  display: block;
+  /* font-family isn't space-separated, but =~ will have to do */
+  &[font-family~="monospace" i], & [font-family~="monospace" i] {
+    font-family: var(--font-mono);
+  }
+}
+.alignCenter {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
+       support flexbox yet.
+    */
+    display: table;
+    margin: 0 auto;
+  }
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 0.5em 2em;
+  & :is(ol, ul) {
+    margin-left: 1em;
+  }
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+  & li {
+    margin-top: 0.5em;
+  }
+}
+:is(ul, ol).compact, .ulCompact, .olCompact {
+  margin: 0 0 0 2em;
+  & li {
+    margin: 0;
+    & :first-child { margin-top: 0; }
+    & :last-child { margin-bottom: 0; }
+  }
+}
+
+/* definition lists */
+dl {
+  clear: left;
+  --indent: 3ch;
+  /* --indent: attr(indent ch); not supported in any browser, but we can dream */
+  &.olPercent {
+    --indent: 5ch;
+    & > dt {
+      min-width: calc(var(--indent) - 2ch);
+      float: none;
+    }
+  }
+
+  dl > dd > & {
+    margin-top: 0.5em;
+    margin-bottom: 0;
+  }
+
+  &:not(.dlNewline) > dt {
+    float: left;
+    margin-right: 2ch;
+    min-width: 8ch;
+  }
+  & > dd {
+    margin-bottom: .8em;
+    margin-left: var(--indent) !important; /* stupid element overrides */
+    min-height: 2ex;
+  }
+}
+:is(dl.compact, .dlCompact) > dd {
+  margin-bottom: 0;
+  & > :is(:first-child, .break:first-child + *) {
+    margin-top: 0;
+  }
+  & > :is(:last-child) {
+    margin-bottom: 0;
+  }
+}
+:is(dd, span).break {
+  display: none;
+}
+
+/* links */
+a {
+  text-decoration: none;
+  &[href] {
+    color: var(--link-color);
+    &:hover { text-decoration: underline; }
+    &.selfRef {
+      color: var(--text-color);
+      &:hover {
+        text-decoration: none;
+        background-color: var(--highlight-color);
+      }
+    }
+  }
+}
+.iref + a[href].internal {
+  color: var(--text-color);
+}
+a.xref:is(.cite, .auto), :is(#status-of-memo, #copyright) a {
+  white-space: nowrap;
+}
+
+/* Figures */
+tt, code, pre {
+  background-color: var(--highlight-color);
+  font: 14px/22px var(--font-mono);
+}
+tt, code {
+  /* changing the font for inline elements leads to different ascender
+     and descender heights; as we want to retain baseline alignment,
+     remove leading to avoid altering the final height of lines
+     note: this fails if these blocks take an entire line,
+     a different solution would be great */
+  line-height: 0;
+}
+:is(h1, h2, h3, h4, h5, h6) :is(tt, code) {
+  font-size: 84%;
+}
+pre {
+  border: 1px solid var(--line-color);
+  font-size: 13.5px;
+  line-height: 16px;
+  letter-spacing: -0.2px;
+  margin: 5px;
+  padding: 5px;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0.5em 0;
+  padding: 0;
+  & blockquote {
+    margin: 0.8em 0.4em 0.4em;
+  }
+}
+figcaption, caption {
+  font-style: italic;
+  margin: 0.5em 1.5em;
+  text-align: left;
+  caption-side: bottom;
+}
+@media screen {
+  /* Auto-collapse boilerplate. */
+  :is(#status-of-memo, #copyright) {
+    & p {
+      margin: -2px 0;
+      max-height: 0;
+      transition: max-height 2s ease, margin 0.5s ease 0.5s;
+      overflow: hidden;
+    }
+    &:hover p,
+    & h2:target ~ p {
+      margin: 0.5em 0;
+      max-height: 500px;
+      overflow: auto;
+    }
+  }
+  pre, svg {
+    display: inline-block;
+    /* In the horizontal direction, sometimes people make over-sized figures.
+       Scrollbars for those is therefore necessary: auto adds them as necessary..
+       In the vertical direction, the line-height can combine with the font
+       asender/descender height to produce scrollbars: hidden avoids that. */
+    overflow: auto hidden;
+  }
+  pre {
+    max-width: 100%;
+    width: calc(100% - 22px - 1em);
+  }
+  svg {
+    max-width: calc(100% - 22px - 1em);
+  }
+  figure pre {
+    display: block;
+    width: calc(100% - 25px);
+  }
+  :is(pre, svg) + .pilcrow {
+    display: inline-block;
+    vertical-align: text-bottom;
+    padding-bottom: 8px;
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 0 2em;
+  font-style: italic;
+}
+blockquote {
+  margin: 1em 0;
+  border-left: 2px var(--pilcrow-strong) solid;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+
+/* tables */
+table {
+  width: auto;
+  max-width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+  &.right { margin-left: auto; }
+  &.center { margin-left: auto; margin-right: auto; }
+  &.left { margin-right: auto; }
+  & .text-left { text-align: left; }
+  & .text-center { text-align: center; }
+  & .text-right { text-align: right; }
+  & caption {
+    margin: 0;
+    padding: 3px 0 3px 1em;
+  }
+  & p { margin: 0; }
+}
+
+thead, tbody {
+  border: 1px solid var(--line-color);
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5px 10px;
+}
+th {
+  background-color: var(--line-color);
+}
+:is(tr:nth-child(2n), thead+tbody > tr:nth-child(2n+1)) > td {
+  background-color: var(--background-color);
+}
+:is(tr:nth-child(2n+1), thead+tbody > tr:nth-child(2n)) > td {
+  background-color: var(--highlight-color);
+}
+
+/* pilcrow */
+a.pilcrow {
+  margin-left: 3px;
+  opacity: 0.2;
+  user-select: none;
+  &[href] {
+    color: var(--pilcrow-weak);
+    &:hover { text-decoration: none; }
+  }
+  @media not print {
+    :hover > &, &:focus {
+      opacity: 1;
+    }
+    &[href]:hover {
+      color: var(--pilcrow-strong);
+      background-color: transparent;
+    }
+  }
+  @media print {
+    display: none;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid var(--line-color);
+}
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: 600;
+  font-size: var(--small-font-size);
+}
+.role {
+  font-variant: all-small-caps;
+}
+sub, sup {
+  line-height: 1;
+  font-size: 80%;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: var(--small-font-size);
+  line-height: 18px;
+  --identifier-width: 15ch;
+  & dt {
+    width: var(--identifier-width);
+    min-width: var(--identifier-width);
+    clear: left;
+    float: left;
+    text-align: right;
+    margin-right: 1ch;
+  }
+  & dd {
+    margin: 0;
+    margin-left: calc(1em + var(--identifier-width)) !important;
+    min-width: 5em;
+  }
+  & .authors {
+    & .author {
+      display: inline-block;
+      margin-right: 1.5em;
+    }
+    & .org {
+      font-style: italic;
+    }
+  }
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #999;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+  & .prepared {
+    float: right;
+  }
+}
+
+/* table of contents */
+#toc {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+
+  & nav {
+    & ul {
+      margin: 0 0.5em 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    & li {
+      line-height: 1.3em;
+      margin: 2px 0;
+      padding-left: 1.2em;
+      text-indent: -1.2em;
+    }
+  }
+  & a.xref {
+    white-space: normal;
+  }
+}
+
+.references {
+  & > dt {
+    text-align: right;
+    font-weight: bold;
+    min-width: 10ch;
+    margin-right: 1.5ch;
+    &:target::before {
+      content: "⇒";
+      margin: 0 10px 0 -25px;
+    }
+  }
+  & > dd {
+    margin-left: 12ch !important;
+    overflow: visible;
+    & .refInstance {
+      margin-bottom: 0.8em;
+    }
+    & .ascii {
+      margin-bottom: 0.25em;
+    }
+  }
+}
+
+#rfc\.index\.index + ul {
+  margin-left: 0;
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  max-width: 20em;
+  margin: 1em auto 1em 0;
+
+  & .nameRole {
+    font-weight: 700;
+    margin-left: 0;
+  }
+  & .label {
+    margin: 0.5em 0;
+  }
+  & .type {
+    display: none;
+  }
+  & .alternative-contact {
+    margin: 0.5em 0 0.25em 0;
+  }
+  & .non-ascii {
+    margin: 0 0 0 2em;
+  }
+  & div.left {
+    text-align: left;
+  }
+  & div.right {
+    text-align: right;
+  }
+}
+
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+@media (min-width: 500px) {
+  #authors-addresses {
+    & > section {
+      column-count: 2;
+      column-gap: 20px;
+    }
+    & > section > h2 {
+      column-span: all;
+    }
+    /* hack for break-inside: avoid-column */
+    & address {
+      display: inline-block;
+      break-inside: avoid-column;
+    }
+  }
+}
+
+/* Comments */
+.rfcEditorRemove {
+  & p:first-of-type {
+    font-style: italic;
+  }
+}
+.cref {
+  background-color: rgba(249, 232, 105, 0.3);
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+
+@media screen {
+  #toc {
+    & nav {
+      font-family: var(--font-title);
+      font-weight: 360;
+      & > ul { margin-bottom: 2em; }
+      & ul {
+        margin: 0 0 0 4px;
+        & :is(p, li) {
+          margin: 2px 0;
+        }
+      }
+    }
+    & a.toplink {
+      float: right;
+    }
+  }
+}
+@media not screen {
+  #toc a.toplink {
+    display: none;
+  }
+}
+
+
+/* TOC layout for smaller screens */
+@media screen and (max-width: 929px) {
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 1px 0 0 0;
+    margin: 0;
+    border-bottom: 1px solid #ccc;
+    opacity: 0.6;
+    & h2 {
+      margin: 0;
+      padding: 2px 0 2px 6px;
+      padding-right: 1em;
+      font-size: 18px;
+      line-height: 24px;
+      min-width: 190px;
+      text-align: right;
+      background-color: #444;
+      color: white;
+      cursor: pointer;
+      &::before { /* css hamburger */
+        float: right;
+        position: relative;
+        width: 1em;
+        height: 1px;
+        left: -164px;
+        margin: 8px 0 0 0;
+        background: white none repeat scroll 0 0;
+        box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+        content: "";
+      }
+    }
+    & nav {
+      display: none;
+      background-color: var(--background-color);
+      padding: 0.5em 1em 1em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      height: calc(100vh - 48px);
+      border-left: 1px solid #ddd;
+    }
+    &.active {
+      opacity: 1;
+      & nav { display: block; }
+    }
+    /* Make the collapsed ToC header render white on gray also when it's a link */
+    & h2 a,
+    & h2 a:is(:link, :focus, :hover),
+    & a.toplink,
+    & a.toplink:hover {
+      color: white;
+      background-color: #444;
+      text-decoration: none;
+    }
+    & a.toplink {
+      margin: 2px 0.5em 0;
+    }
+  }
+}
+
+/* TOC layout for wide screens */
+@media screen and (min-width: 930px) {
+  body {
+    padding-right: 360px;
+    padding-right: calc(min(180px + 20%, 500px));
+  }
+  #toc {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    right: calc(50vw - 480px);
+    width: 312px;
+    margin: 0;
+    padding: 0;
+    z-index: 1;
+    & h2 {
+      margin: 0;
+      padding: 0.25em 1em 1em 0;
+    }
+    & nav {
+      display: block;
+      height: calc(90vh - 84px);
+      bottom: 0;
+      padding: 0.5em 0 2em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+    & a.toplink {
+      margin: 8px 0.5em 0;
+    }
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc {
+    page-break-before: always;
+    border-top: none;
+    padding-top: 0;
+  }
+  #n-introduction {
+    page-break-before: always;
+  }
+  figure, pre, .vcard {
+    page-break-inside: avoid;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  :is(h2, h3, h4, h5, h6)+*, dd {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+}
+
+/* Dark mode. */
+@media (prefers-color-scheme: dark) {
+:root {
+  --background-color: #121212;
+  --text-color: #f0f0f0;
+  --title-color: #fff;
+  --link-color: #4da4f0;
+  --highlight-color: #282828;
+  --line-color: #444;
+  --pilcrow-weak: #444;
+  --pilcrow-strong: #666;
+  scrollbar-color: #777 #333;
+}
+}
+
+/* SVG Trick: a prefix match works because only black and white are allowed */
+svg {
+  & :is([stroke="black"], [stroke^="#000"]) {
+    stroke: var(--text-color);
+  }
+  & :is([stroke="white"], [stroke^="#fff"]) {
+    stroke: var(--background-color);
+  }
+  & :is([fill="black"], [fill^="#000"], :not([fill])) {
+    fill: var(--text-color);
+  }
+  & :is([fill="white"], [fill^="#fff"]) {
+    fill: var(--background-color);
+  }
+}
+</style>
+
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">WIMSE Trust Domain Discovery</td>
+<td class="right">July 2026</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">Schwenkschuster &amp; Rosomakho</td>
+<td class="center">Expires 4 January 2027</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">Workload Identity in Multi System Environments</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-schwenkschuster-wimse-trust-domain-discovery-latest</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2026-07-03" class="published">3 July 2026</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Standards Track</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2027-01-04">4 January 2027</time></dd>
+<dt class="label-authors">Authors:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">A. Schwenkschuster</div>
+<div class="org">Defakto Security</div>
+</div>
+<div class="author">
+      <div class="author-name">Y. Rosomakho</div>
+<div class="org">Zscaler</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">WIMSE Trust Domain Discovery</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">The WIMSE architecture scopes workload identifiers to a trust domain. To validate a workload identity credential, a relying party must securely obtain the cryptographic trust anchors associated with the credential's trust domain. The WIMSE architecture requires that this mapping between a trust domain and its trust anchors is obtained through a secure mechanism, but leaves that mechanism undefined.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+<p id="section-abstract-2">This document defines such a mechanism for open environments in which no prior trust relationship exists between the relying party and the trust domain. It specifies the WIMSE Trust Bundle, a document that conveys the trust anchors of a trust domain for both JWT-based and X.509-based workload identity credentials, and a discovery mechanism based on a well-known HTTPS endpoint that allows a relying party to resolve a trust domain name to its trust bundle on demand.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
+</section>
+<section class="note rfcEditorRemove" id="section-note.1">
+      <h2 id="name-about-this-document">
+<a href="#name-about-this-document" class="section-name selfRef">About This Document</a>
+      </h2>
+<p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
+<p id="section-note.1-2">
+        Status information for this document may be found at <span><a href="https://datatracker.ietf.org/doc/draft-schwenkschuster-wimse-trust-domain-discovery/">https://datatracker.ietf.org/doc/draft-schwenkschuster-wimse-trust-domain-discovery/</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
+<p id="section-note.1-3">
+        Discussion of this document takes place on the
+        Workload Identity in Multi System Environments Working Group mailing list (<span><a href="mailto:wimse@ietf.org">mailto:wimse@ietf.org</a></span>),
+        which is archived at <span><a href="https://mailarchive.ietf.org/arch/browse/wimse/">https://mailarchive.ietf.org/arch/browse/wimse/</a></span>.
+        Subscribe at <span><a href="https://www.ietf.org/mailman/listinfo/wimse/">https://www.ietf.org/mailman/listinfo/wimse/</a></span>.<a href="#section-note.1-3" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 4 January 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2026 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.1">
+                <p id="section-toc.1-1.1.2.1.1" class="keepWithNext"><a href="#section-1.1" class="auto internal xref">1.1</a>.  <a href="#name-relationship-to-existing-me" class="internal xref">Relationship to Existing Mechanisms</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1" class="keepWithNext"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-definitions" class="internal xref">Conventions and Definitions</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-requirements-on-discoverabl" class="internal xref">Requirements on Discoverable Trust Domains</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-the-wimse-trust-bundle" class="internal xref">The WIMSE Trust Bundle</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-bundle-entries" class="internal xref">Bundle Entries</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
+                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-freshness-and-rotation" class="internal xref">Freshness and Rotation</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-trust-domain-discovery" class="internal xref">Trust Domain Discovery</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-trust-domain-metadata" class="internal xref">Trust Domain Metadata</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
+                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-well-known-uri" class="internal xref">Well-Known URI</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3">
+                <p id="section-toc.1-1.5.2.3.1"><a href="#section-5.3" class="auto internal xref">5.3</a>.  <a href="#name-discovery-procedure" class="internal xref">Discovery Procedure</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.4">
+                <p id="section-toc.1-1.5.2.4.1"><a href="#section-5.4" class="auto internal xref">5.4</a>.  <a href="#name-precedence-of-locally-provi" class="internal xref">Precedence of Locally Provisioned Trust</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.1">
+                <p id="section-toc.1-1.6.2.1.1"><a href="#section-6.1" class="auto internal xref">6.1</a>.  <a href="#name-discovery-is-not-trust" class="internal xref">Discovery Is Not Trust</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.2">
+                <p id="section-toc.1-1.6.2.2.1"><a href="#section-6.2" class="auto internal xref">6.2</a>.  <a href="#name-reliance-on-dns-and-the-web" class="internal xref">Reliance on DNS and the Web PKI</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3">
+                <p id="section-toc.1-1.6.2.3.1"><a href="#section-6.3" class="auto internal xref">6.3</a>.  <a href="#name-revocation-and-compromise-r" class="internal xref">Revocation and Compromise Recovery</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.4">
+                <p id="section-toc.1-1.6.2.4.1"><a href="#section-6.4" class="auto internal xref">6.4</a>.  <a href="#name-trust-domain-name-handling" class="internal xref">Trust Domain Name Handling</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.5">
+                <p id="section-toc.1-1.6.2.5.1"><a href="#section-6.5" class="auto internal xref">6.5</a>.  <a href="#name-denial-of-service" class="internal xref">Denial of Service</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-privacy-considerations" class="internal xref">Privacy Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1">
+                <p id="section-toc.1-1.8.2.1.1"><a href="#section-8.1" class="auto internal xref">8.1</a>.  <a href="#name-well-known-uri-registration" class="internal xref">Well-Known URI Registration</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.2">
+                <p id="section-toc.1-1.8.2.2.1"><a href="#section-8.2" class="auto internal xref">8.2</a>.  <a href="#name-media-type-registration" class="internal xref">Media Type Registration</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.3">
+                <p id="section-toc.1-1.8.2.3.1"><a href="#section-8.3" class="auto internal xref">8.3</a>.  <a href="#name-json-web-key-use-values" class="internal xref">JSON Web Key Use Values</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.1">
+                <p id="section-toc.1-1.9.2.1.1"><a href="#section-9.1" class="auto internal xref">9.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.2">
+                <p id="section-toc.1-1.9.2.2.1"><a href="#section-9.2" class="auto internal xref">9.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-document-history" class="internal xref">Document History</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.1">
+                <p id="section-toc.1-1.10.2.1.1"><a href="#appendix-A.1" class="auto internal xref">A.1</a>.  <a href="#name-draft-schwenkschuster-wimse" class="internal xref">draft-schwenkschuster-wimse-trust-domain-discovery-00</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">Workload identity credentials, such as the Workload Identity Token (WIT) and the Workload Identity Certificate (WIC) defined in <span>[<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span>, carry a Workload Identifier <span>[<a href="#WIMSE-ID" class="cite xref">WIMSE-ID</a>]</span> that is scoped to a trust domain. A relying party that receives such a credential can only validate it if it possesses the trust anchors of the issuing trust domain: a set of JWT signing keys for WITs, or a set of certification authority (CA) certificates for WICs.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">The WIMSE architecture <span>[<a href="#I-D.ietf-wimse-arch" class="cite xref">I-D.ietf-wimse-arch</a>]</span> states that a trust domain maps to one or more trust anchors and that this mapping "<span class="bcp14">MUST</span> be obtained through a secure mechanism that ensures the authenticity and integrity of the mapping is fresh and not compromised", while declaring the mechanism itself out of scope. In closed environments this mapping is typically provisioned out of band, for example through static federation configuration or through a local workload API. In open environments, where workloads from previously unknown trust domains present credentials, no such prior provisioning exists. Today a relying party in this situation has no interoperable way to obtain the trust anchors for a trust domain such as <code>example.com</code> and therefore cannot validate the credential at all.<a href="#section-1-2" class="pilcrow">¶</a></p>
+<p id="section-1-3">This document closes that gap with two components:<a href="#section-1-3" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-1-4.1">
+          <p id="section-1-4.1.1">The WIMSE Trust Bundle (<a href="#trust-bundle" class="auto internal xref">Section 4</a>), a JSON document that conveys the trust anchors of a trust domain for both WIT and WIC validation, together with freshness metadata.<a href="#section-1-4.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-4.2">
+          <p id="section-1-4.2.1">A discovery mechanism (<a href="#discovery" class="auto internal xref">Section 5</a>) that derives, from the trust domain name alone, the location of a Trust Domain Metadata document served from a well-known URI <span>[<a href="#RFC8615" class="cite xref">RFC8615</a>]</span> under the trust domain name. The metadata document in turn references the trust bundle endpoint. This follows the well-established pattern of OpenID Connect Discovery <span>[<a href="#OIDC-DISCOVERY" class="cite xref">OIDC-DISCOVERY</a>]</span> and OAuth 2.0 Authorization Server Metadata <span>[<a href="#RFC8414" class="cite xref">RFC8414</a>]</span>.<a href="#section-1-4.2.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-1-5">The mechanism defined in this document authenticates the mapping between a trust domain name and its trust anchors. It deliberately does not establish that the trust domain itself should be trusted; see <a href="#discovery-not-trust" class="auto internal xref">Section 6.1</a>.<a href="#section-1-5" class="pilcrow">¶</a></p>
+<div id="relationship-to-existing-mechanisms">
+<section id="section-1.1">
+        <h3 id="name-relationship-to-existing-me">
+<a href="#section-1.1" class="section-number selfRef">1.1. </a><a href="#name-relationship-to-existing-me" class="section-name selfRef">Relationship to Existing Mechanisms</a>
+        </h3>
+<p id="section-1.1-1">The trust bundle defined in this document is conceptually similar to the SPIFFE trust bundle and the SPIFFE bundle endpoint <span>[<a href="#SPIFFE-FEDERATION" class="cite xref">SPIFFE-FEDERATION</a>]</span>. SPIFFE Federation, however, requires that the bundle endpoint URL, endpoint profile, and trust domain name are configured out of band prior to bundle retrieval. This document removes that requirement by making the location of the trust domain's metadata derivable from the trust domain name itself. Deployments already operating a SPIFFE bundle endpoint can expose the same key material through the mechanism defined here.<a href="#section-1.1-1" class="pilcrow">¶</a></p>
+<p id="section-1.1-2">Existing provisioning mechanisms remain valid and take precedence over discovery; see <a href="#precedence" class="auto internal xref">Section 5.4</a>.<a href="#section-1.1-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="conventions-and-definitions">
+<section id="section-2">
+      <h2 id="name-conventions-and-definitions">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-conventions-and-definitions" class="section-name selfRef">Conventions and Definitions</a>
+      </h2>
+<p id="section-2-1">All terminology in this document follows <span>[<a href="#I-D.ietf-wimse-arch" class="cite xref">I-D.ietf-wimse-arch</a>]</span> and <span>[<a href="#WIMSE-ID" class="cite xref">WIMSE-ID</a>]</span>.<a href="#section-2-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-2-2">
+        <dt id="section-2-2.1">Relying Party:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.2">
+          <p id="section-2-2.2.1">An entity that receives a workload identity credential and needs to validate it. This corresponds to the Consumer role in <span>[<a href="#WIMSE-ID" class="cite xref">WIMSE-ID</a>]</span>.<a href="#section-2-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.3">Discoverable Trust Domain:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.4">
+          <p id="section-2-2.4.1">A trust domain that participates in the discovery mechanism defined in this document.<a href="#section-2-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+<p id="section-2-3">The key words "<span class="bcp14">MUST</span>", "<span class="bcp14">MUST NOT</span>", "<span class="bcp14">REQUIRED</span>", "<span class="bcp14">SHALL</span>", "<span class="bcp14">SHALL NOT</span>", "<span class="bcp14">SHOULD</span>", "<span class="bcp14">SHOULD NOT</span>", "<span class="bcp14">RECOMMENDED</span>", "<span class="bcp14">NOT RECOMMENDED</span>",
+"<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
+described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they
+appear in all capitals, as shown here.<a href="#section-2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="requirements">
+<section id="section-3">
+      <h2 id="name-requirements-on-discoverabl">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-requirements-on-discoverabl" class="section-name selfRef">Requirements on Discoverable Trust Domains</a>
+      </h2>
+<p id="section-3-1"><span>[<a href="#WIMSE-ID" class="cite xref">WIMSE-ID</a>]</span> states that a trust domain <span class="bcp14">SHOULD</span> be a fully qualified domain name (FQDN) belonging to the organization defining the trust domain. This document strengthens that requirement for participation in discovery:<a href="#section-3-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-3-2.1">
+          <p id="section-3-2.1.1">A Discoverable Trust Domain <span class="bcp14">MUST</span> be a fully qualified DNS name.<a href="#section-3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-2.2">
+          <p id="section-3-2.2.1">The DNS name <span class="bcp14">MUST</span> be under the administrative control of the trust domain owner, and the owner <span class="bcp14">MUST</span> be able to serve HTTPS content for that exact name.<a href="#section-3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-3-3">Trust domains that do not meet these requirements (for example, names that are not registered in the public DNS) are simply not discoverable and <span class="bcp14">MUST</span> rely on out-of-band provisioning of their trust anchors. This document does not change the requirements of <span>[<a href="#WIMSE-ID" class="cite xref">WIMSE-ID</a>]</span> for such trust domains.<a href="#section-3-3" class="pilcrow">¶</a></p>
+<p id="section-3-4">Note that these requirements are largely self-enforcing: an entity that does not control the DNS name of a trust domain cannot serve the corresponding well-known resource, and discovery for that trust domain will either fail or return material published by the legitimate name owner.<a href="#section-3-4" class="pilcrow">¶</a></p>
+<p id="section-3-5">Discovery operates on the exact trust domain name only. A relying party <span class="bcp14">MUST NOT</span> fall back to a parent domain if discovery for the trust domain name fails. For example, discovery for the trust domain <code>prod.example.com</code> is performed against <code>prod.example.com</code> only, never against <code>example.com</code>. This prevents a parent zone or parent host operator from implicitly answering for trust domains it does not operate.<a href="#section-3-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="trust-bundle">
+<section id="section-4">
+      <h2 id="name-the-wimse-trust-bundle">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-the-wimse-trust-bundle" class="section-name selfRef">The WIMSE Trust Bundle</a>
+      </h2>
+<p id="section-4-1">A WIMSE Trust Bundle conveys the trust anchors of a single trust domain. It is a JSON document based on the JWK Set format <span>[<a href="#RFC7517" class="cite xref">RFC7517</a>]</span> with additional top-level members for freshness. The media type of a trust bundle is <code>application/wimse-trust-bundle+json</code>.<a href="#section-4-1" class="pilcrow">¶</a></p>
+<p id="section-4-2">A trust bundle contains the following top-level members:<a href="#section-4-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4-3.1">
+          <p id="section-4-3.1.1"><code>keys</code>: <span class="bcp14">REQUIRED</span>. A JWK Set <code>keys</code> array as defined in <span><a href="https://rfc-editor.org/rfc/rfc7517#section-5.1" class="relref">Section 5.1</a> of [<a href="#RFC7517" class="cite xref">RFC7517</a>]</span>. The interpretation of each JWK is determined by its <code>use</code> member as defined below.<a href="#section-4-3.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-4-3.2">
+          <p id="section-4-3.2.1"><code>refresh_hint</code>: <span class="bcp14">OPTIONAL</span>. A JSON number indicating, in seconds, how often a consumer <span class="bcp14">SHOULD</span> re-fetch the bundle. See <a href="#freshness" class="auto internal xref">Section 4.2</a>.<a href="#section-4-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-4-3.3">
+          <p id="section-4-3.3.1"><code>sequence_number</code>: <span class="bcp14">OPTIONAL</span>. A strictly monotonically increasing JSON integer, incremented whenever the contents of the bundle change. Consumers use this value to compare the recency of two bundles.<a href="#section-4-3.3.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<div id="bundle-entries">
+<section id="section-4.1">
+        <h3 id="name-bundle-entries">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-bundle-entries" class="section-name selfRef">Bundle Entries</a>
+        </h3>
+<p id="section-4.1-1">Each element of the <code>keys</code> array is a JWK <span>[<a href="#RFC7517" class="cite xref">RFC7517</a>]</span> and <span class="bcp14">MUST</span> contain a <code>use</code> member with one of the following values:<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.1-2.1">
+            <p id="section-4.1-2.1.1"><code>wimse-jwt</code>: The entry carries a public key used to verify the signature of JWT-based workload identity credentials (such as the WIT defined in <span>[<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span>) issued by this trust domain. The key type and parameters follow <span>[<a href="#RFC7517" class="cite xref">RFC7517</a>]</span> and <span>[<a href="#RFC7518" class="cite xref">RFC7518</a>]</span>. Entries with this use value <span class="bcp14">SHOULD</span> contain a <code>kid</code> member to support key selection during rotation.<a href="#section-4.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.1-2.2">
+            <p id="section-4.1-2.2.1"><code>wimse-x509</code>: The entry carries a CA certificate used as a trust anchor for validating X.509-based workload identity credentials (such as the WIC defined in <span>[<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span>) issued by this trust domain. The entry <span class="bcp14">MUST</span> contain an <code>x5c</code> member whose value contains exactly one base64-encoded DER certificate. The certificate <span class="bcp14">SHOULD</span> be self-signed. The JWK key parameters <span class="bcp14">MUST</span> represent the public key of that certificate.<a href="#section-4.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-4.1-3">Consumers <span class="bcp14">MUST</span> ignore entries with an unrecognized <code>use</code> value. A trust domain that issues only one credential type publishes only the corresponding entries.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="freshness">
+<section id="section-4.2">
+        <h3 id="name-freshness-and-rotation">
+<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-freshness-and-rotation" class="section-name selfRef">Freshness and Rotation</a>
+        </h3>
+<p id="section-4.2-1">Trust bundle contents change over time as trust domains rotate their keys. Publishers <span class="bcp14">MUST</span> publish new keys in the bundle before using them to issue credentials, and <span class="bcp14">SHOULD</span> do so sufficiently in advance that consumers refreshing at the <code>refresh_hint</code> interval obtain the new keys before they are needed.<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+<p id="section-4.2-2">Consumers <span class="bcp14">SHOULD</span> re-fetch the bundle at the interval indicated by <code>refresh_hint</code>, or at a locally configured default interval if the hint is absent. Consumers <span class="bcp14">MUST NOT</span> accept a newly fetched bundle whose <code>sequence_number</code> is lower than that of the currently cached bundle for the same trust domain.<a href="#section-4.2-2" class="pilcrow">¶</a></p>
+<p id="section-4.2-3">Removal of a key from the bundle indicates that the key is no longer a valid trust anchor. Consumers <span class="bcp14">MUST</span> stop using removed keys after refresh. The refresh interval therefore bounds the time during which a compromised and subsequently removed key is still accepted; see <a href="#sec-revocation" class="auto internal xref">Section 6.3</a>.<a href="#section-4.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="discovery">
+<section id="section-5">
+      <h2 id="name-trust-domain-discovery">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-trust-domain-discovery" class="section-name selfRef">Trust Domain Discovery</a>
+      </h2>
+<div id="metadata">
+<section id="section-5.1">
+        <h3 id="name-trust-domain-metadata">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-trust-domain-metadata" class="section-name selfRef">Trust Domain Metadata</a>
+        </h3>
+<p id="section-5.1-1">A Discoverable Trust Domain publishes a Trust Domain Metadata document. The media type of this document is <code>application/wimse-trust-domain-metadata+json</code>. It is a JSON object with the following members:<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-5.1-2.1">
+            <p id="section-5.1-2.1.1"><code>trust_domain</code>: <span class="bcp14">REQUIRED</span>. The trust domain name this metadata describes.<a href="#section-5.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-5.1-2.2">
+            <p id="section-5.1-2.2.1"><code>trust_bundle_endpoint</code>: <span class="bcp14">REQUIRED</span>. An HTTPS URL from which the current WIMSE Trust Bundle (<a href="#trust-bundle" class="auto internal xref">Section 4</a>) of this trust domain can be retrieved.<a href="#section-5.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-5.1-3">Additional members <span class="bcp14">MAY</span> be present and <span class="bcp14">MUST</span> be ignored if not understood. Future specifications may register additional metadata members, for example to describe supported credential types or federation policy.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+<p id="section-5.1-4">The <code>trust_bundle_endpoint</code> URL is not required to share an origin with the trust domain name. Its authority derives from the authenticated metadata document that references it, analogous to the <code>jwks_uri</code> member of <span>[<a href="#RFC8414" class="cite xref">RFC8414</a>]</span>. This permits serving the bundle from shared infrastructure such as a content delivery network.<a href="#section-5.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="well-known">
+<section id="section-5.2">
+        <h3 id="name-well-known-uri">
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-well-known-uri" class="section-name selfRef">Well-Known URI</a>
+        </h3>
+<p id="section-5.2-1">The Trust Domain Metadata document is retrieved from the following URL, constructed from the trust domain name:<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-5.2-2">
+<pre>
+https://&lt;trust-domain&gt;/.well-known/wimse-trust-domain
+</pre><a href="#section-5.2-2" class="pilcrow">¶</a>
+</div>
+<p id="section-5.2-3">For example, for the trust domain <code>prod.example.com</code> the metadata URL is:<a href="#section-5.2-3" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-5.2-4">
+<pre>
+https://prod.example.com/.well-known/wimse-trust-domain
+</pre><a href="#section-5.2-4" class="pilcrow">¶</a>
+</div>
+<p id="section-5.2-5">The path suffix <code>wimse-trust-domain</code> is registered in the "Well-Known URIs" registry; see <a href="#iana-well-known" class="auto internal xref">Section 8.1</a>.<a href="#section-5.2-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="procedure">
+<section id="section-5.3">
+        <h3 id="name-discovery-procedure">
+<a href="#section-5.3" class="section-number selfRef">5.3. </a><a href="#name-discovery-procedure" class="section-name selfRef">Discovery Procedure</a>
+        </h3>
+<p id="section-5.3-1">To discover the trust anchors of a trust domain, a relying party performs the following steps:<a href="#section-5.3-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-5.3-2">
+<li id="section-5.3-2.1">
+            <p id="section-5.3-2.1.1">Verify that the trust domain name is a syntactically valid fully qualified DNS name. If it is not, discovery fails.<a href="#section-5.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-5.3-2.2">
+            <p id="section-5.3-2.2.1">Construct the metadata URL as defined in <a href="#well-known" class="auto internal xref">Section 5.2</a> and retrieve it with an HTTP GET request <span>[<a href="#RFC9110" class="cite xref">RFC9110</a>]</span> over TLS. The TLS server certificate <span class="bcp14">MUST</span> be validated according to <span>[<a href="#RFC9525" class="cite xref">RFC9525</a>]</span> against the trust domain name, using the relying party's Web PKI trust store. The request <span class="bcp14">MUST NOT</span> require client authentication.<a href="#section-5.3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-5.3-2.3">
+            <p id="section-5.3-2.3.1">Parse the response as a Trust Domain Metadata document (<a href="#metadata" class="auto internal xref">Section 5.1</a>). The relying party <span class="bcp14">MUST</span> verify that the <code>trust_domain</code> member is byte-wise identical to the trust domain name for which discovery was initiated. If it is not, discovery fails. This check prevents mix-up attacks in which a document intended for one trust domain is served for another.<a href="#section-5.3-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-5.3-2.4">
+            <p id="section-5.3-2.4.1">Retrieve the trust bundle from the <code>trust_bundle_endpoint</code> URL with an HTTP GET request over TLS. The TLS server certificate <span class="bcp14">MUST</span> be validated according to <span>[<a href="#RFC9525" class="cite xref">RFC9525</a>]</span> against the host component of the <code>trust_bundle_endpoint</code> URL, using the relying party's Web PKI trust store.<a href="#section-5.3-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-5.3-2.5">
+            <p id="section-5.3-2.5.1">Parse the response as a WIMSE Trust Bundle (<a href="#trust-bundle" class="auto internal xref">Section 4</a>) and associate its contents with the trust domain name from step 1 as that trust domain's trust anchors, subject to the precedence rules of <a href="#precedence" class="auto internal xref">Section 5.4</a> and local policy (<a href="#discovery-not-trust" class="auto internal xref">Section 6.1</a>).<a href="#section-5.3-2.5.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="section-5.3-3">Servers <span class="bcp14">MAY</span> respond with HTTP redirects at either step; clients following redirects <span class="bcp14">MUST</span> apply the respective TLS validation rules of the step to every URL in the redirect chain, and all URLs in the chain <span class="bcp14">MUST</span> use the <code>https</code> scheme.<a href="#section-5.3-3" class="pilcrow">¶</a></p>
+<p id="section-5.3-4">If any step fails, discovery for the trust domain fails and the relying party <span class="bcp14">MUST NOT</span> use partially retrieved material. A discovery failure is indistinguishable from the trust domain not participating in discovery; in either case, credentials from that trust domain cannot be validated through this mechanism and are handled according to local policy (for example, validated against out-of-band configured anchors, or rejected).<a href="#section-5.3-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="precedence">
+<section id="section-5.4">
+        <h3 id="name-precedence-of-locally-provi">
+<a href="#section-5.4" class="section-number selfRef">5.4. </a><a href="#name-precedence-of-locally-provi" class="section-name selfRef">Precedence of Locally Provisioned Trust</a>
+        </h3>
+<p id="section-5.4-1">Deployments frequently provision trust anchors through existing mechanisms, such as a local workload API, static federation configuration, or the mechanisms described in <span>[<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span>. These mechanisms take precedence over discovery:<a href="#section-5.4-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-5.4-2.1">
+            <p id="section-5.4-2.1.1">If a relying party has trust anchors for a trust domain provisioned through a local mechanism, it <span class="bcp14">MUST</span> use those anchors and <span class="bcp14">MUST NOT</span> perform discovery for that trust domain.<a href="#section-5.4-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-5.4-2.2">
+            <p id="section-5.4-2.2.1">Discovered trust anchors <span class="bcp14">MUST NOT</span> override, replace, or be merged with locally provisioned trust anchors for the same trust domain.<a href="#section-5.4-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-5.4-2.3">
+            <p id="section-5.4-2.3.1">If an implementation nevertheless finds itself holding both locally provisioned and discovered material for the same trust domain, this condition <span class="bcp14">SHOULD</span> be surfaced as an operational error.<a href="#section-5.4-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-5.4-3">This rule ensures that a workload operating inside a trust domain, whose trust anchors are delivered through a local channel, never resolves its own or a locally federated trust domain through the public mechanism defined here, even if discovery is enabled by default. Implementations <span class="bcp14">MAY</span> enable discovery by default; the precedence rule bounds the effect of misconfiguration to trust domains for which no local trust exists.<a href="#section-5.4-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="security-considerations">
+<section id="section-6">
+      <h2 id="name-security-considerations">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<div id="discovery-not-trust">
+<section id="section-6.1">
+        <h3 id="name-discovery-is-not-trust">
+<a href="#section-6.1" class="section-number selfRef">6.1. </a><a href="#name-discovery-is-not-trust" class="section-name selfRef">Discovery Is Not Trust</a>
+        </h3>
+<p id="section-6.1-1">Successful discovery proves that the retrieved trust anchors were published by the entity controlling the trust domain's DNS name and its Web PKI identity. It does not establish that credentials from that trust domain should be accepted for any purpose. The decision whether to trust a given trust domain, and for what, is an authorization decision of the relying party and is out of scope for this document. Deployments may implement this decision through allowlists, trust-on-first-use with key continuity, gradual trust establishment, or any other local policy.<a href="#section-6.1-1" class="pilcrow">¶</a></p>
+<p id="section-6.1-2">Relying parties <span class="bcp14">MUST NOT</span> treat the mere existence of a discoverable trust bundle as authorization to accept credentials from that trust domain.<a href="#section-6.1-2" class="pilcrow">¶</a></p>
+<p id="section-6.1-3">Conversely, an attacker that mints credentials carrying a trust domain name it does not control gains nothing from this mechanism: discovery for that name either fails or returns the legitimate owner's trust anchors, under which the forged credentials do not verify.<a href="#section-6.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-webpki">
+<section id="section-6.2">
+        <h3 id="name-reliance-on-dns-and-the-web">
+<a href="#section-6.2" class="section-number selfRef">6.2. </a><a href="#name-reliance-on-dns-and-the-web" class="section-name selfRef">Reliance on DNS and the Web PKI</a>
+        </h3>
+<p id="section-6.2-1">This mechanism anchors the trust domain to trust anchor mapping in the DNS and the Web PKI. An attacker that can obtain a fraudulently issued Web PKI certificate for the trust domain name, or that gains control of the DNS name (for example through registrar compromise or domain expiry and re-registration), can publish attacker-controlled trust anchors and thereby impersonate every workload in the trust domain towards relying parties that bootstrap trust through discovery.<a href="#section-6.2-1" class="pilcrow">¶</a></p>
+<p id="section-6.2-2">This trade-off is inherent to the design and identical to that accepted by OpenID Connect Discovery. Publishers <span class="bcp14">SHOULD</span> employ standard mitigations, including CAA records, Certificate Transparency monitoring, DNSSEC <span>[<a href="#RFC9364" class="cite xref">RFC9364</a>]</span> for their zones, and registrar security controls. Deployments with stronger requirements can restrict discovery to specific trust domains, pin discovered material, or continue to use out-of-band provisioning, which always takes precedence (<a href="#precedence" class="auto internal xref">Section 5.4</a>).<a href="#section-6.2-2" class="pilcrow">¶</a></p>
+<p id="section-6.2-3">After first discovery, consumers retain the cached bundle and its <code>sequence_number</code>. Implementations <span class="bcp14">MAY</span> apply key-continuity policies across refreshes, for example flagging bundle replacements that discard all previously seen keys, to reduce the impact of a temporary compromise of the discovery channel.<a href="#section-6.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-revocation">
+<section id="section-6.3">
+        <h3 id="name-revocation-and-compromise-r">
+<a href="#section-6.3" class="section-number selfRef">6.3. </a><a href="#name-revocation-and-compromise-r" class="section-name selfRef">Revocation and Compromise Recovery</a>
+        </h3>
+<p id="section-6.3-1">This mechanism has no online revocation protocol. The removal of a compromised key from the published bundle propagates to relying parties only upon refresh. The effective revocation latency is therefore the consumers' refresh interval. Publishers <span class="bcp14">SHOULD</span> choose a <code>refresh_hint</code> that reflects their tolerance for this latency, and consumers <span class="bcp14">SHOULD</span> honor it. Trust domains <span class="bcp14">SHOULD</span> additionally keep the lifetime of issued credentials short, as recommended in <span>[<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span>, so that both the credential lifetime and the bundle refresh interval bound the exposure after a compromise.<a href="#section-6.3-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="trust-domain-name-handling">
+<section id="section-6.4">
+        <h3 id="name-trust-domain-name-handling">
+<a href="#section-6.4" class="section-number selfRef">6.4. </a><a href="#name-trust-domain-name-handling" class="section-name selfRef">Trust Domain Name Handling</a>
+        </h3>
+<p id="section-6.4-1">The trust domain name used for discovery is taken from an unauthenticated position, namely the authority component of the workload identifier in a not-yet-validated credential. Implementations <span class="bcp14">MUST</span> treat it as untrusted input: it <span class="bcp14">MUST</span> be parsed with a standards-compliant URI parser as required by <span>[<a href="#WIMSE-ID" class="cite xref">WIMSE-ID</a>]</span>, and <span class="bcp14">MUST</span> be validated as a DNS name before any network request is made. Implementations <span class="bcp14">MUST NOT</span> perform discovery for trust domains represented by IP addresses.<a href="#section-6.4-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="denial-of-service">
+<section id="section-6.5">
+        <h3 id="name-denial-of-service">
+<a href="#section-6.5" class="section-number selfRef">6.5. </a><a href="#name-denial-of-service" class="section-name selfRef">Denial of Service</a>
+        </h3>
+<p id="section-6.5-1">Because discovery is triggered by inbound credentials, an attacker can present credentials with arbitrary trust domain names to induce outbound requests. Implementations <span class="bcp14">SHOULD</span> rate-limit discovery attempts, cache negative results, and bound concurrent discovery operations.<a href="#section-6.5-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="privacy-considerations">
+<section id="section-7">
+      <h2 id="name-privacy-considerations">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-privacy-considerations" class="section-name selfRef">Privacy Considerations</a>
+      </h2>
+<p id="section-7-1">Performing discovery reveals to the network, to DNS resolvers, and to the operators of the contacted endpoints that the relying party is processing credentials of the queried trust domain. Deployments for which this metadata is sensitive can pre-fetch and cache bundles for expected peer trust domains, use encrypted DNS transports, or restrict discovery to an allowlist.<a href="#section-7-1" class="pilcrow">¶</a></p>
+<p id="section-7-2">Publishing a trust bundle reveals the existence of the trust domain and its current trust anchor material. Publishers should not include information in bundle or metadata documents beyond what is required for validation.<a href="#section-7-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana-considerations">
+<section id="section-8">
+      <h2 id="name-iana-considerations">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<div id="iana-well-known">
+<section id="section-8.1">
+        <h3 id="name-well-known-uri-registration">
+<a href="#section-8.1" class="section-number selfRef">8.1. </a><a href="#name-well-known-uri-registration" class="section-name selfRef">Well-Known URI Registration</a>
+        </h3>
+<p id="section-8.1-1">IANA is requested to register the following entry in the "Well-Known URIs" registry <span>[<a href="#IANA.WELL.KNOWN" class="cite xref">IANA.WELL.KNOWN</a>]</span>:<a href="#section-8.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-8.1-2.1">
+            <p id="section-8.1-2.1.1">URI Suffix: wimse-trust-domain<a href="#section-8.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.1-2.2">
+            <p id="section-8.1-2.2.1">Change Controller: IETF<a href="#section-8.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.1-2.3">
+            <p id="section-8.1-2.3.1">Specification Document: RFC XXX, <a href="#well-known" class="auto internal xref">Section 5.2</a><a href="#section-8.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.1-2.4">
+            <p id="section-8.1-2.4.1">Status: permanent<a href="#section-8.1-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="media-type-registration">
+<section id="section-8.2">
+        <h3 id="name-media-type-registration">
+<a href="#section-8.2" class="section-number selfRef">8.2. </a><a href="#name-media-type-registration" class="section-name selfRef">Media Type Registration</a>
+        </h3>
+<p id="section-8.2-1">IANA is requested to register the following entries in the "Media Types" registry <span>[<a href="#IANA.MEDIA.TYPES" class="cite xref">IANA.MEDIA.TYPES</a>]</span>:<a href="#section-8.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-8.2-2.1">
+            <p id="section-8.2-2.1.1">application/wimse-trust-domain-metadata+json, per <a href="#metadata" class="auto internal xref">Section 5.1</a>.<a href="#section-8.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.2-2.2">
+            <p id="section-8.2-2.2.1">application/wimse-trust-bundle+json, per <a href="#trust-bundle" class="auto internal xref">Section 4</a>.<a href="#section-8.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-8.2-3">Registration templates to be completed in a future revision of this document.<a href="#section-8.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="json-web-key-use-values">
+<section id="section-8.3">
+        <h3 id="name-json-web-key-use-values">
+<a href="#section-8.3" class="section-number selfRef">8.3. </a><a href="#name-json-web-key-use-values" class="section-name selfRef">JSON Web Key Use Values</a>
+        </h3>
+<p id="section-8.3-1">IANA is requested to register the values <code>wimse-jwt</code> and <code>wimse-x509</code> in the "JSON Web Key Use" registry established by <span>[<a href="#RFC7517" class="cite xref">RFC7517</a>]</span>, per <a href="#trust-bundle" class="auto internal xref">Section 4</a>.<a href="#section-8.3-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="sec-combined-references">
+<section id="section-9">
+      <h2 id="name-references">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<div id="sec-normative-references">
+<section id="section-9.1">
+        <h3 id="name-normative-references">
+<a href="#section-9.1" class="section-number selfRef">9.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="RFC2119">[RFC2119]</dt>
+        <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2119">https://www.rfc-editor.org/rfc/rfc2119</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7517">[RFC7517]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refTitle">"JSON Web Key (JWK)"</span>, <span class="seriesInfo">RFC 7517</span>, <span class="seriesInfo">DOI 10.17487/RFC7517</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7517">https://www.rfc-editor.org/rfc/rfc7517</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7518">[RFC7518]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refTitle">"JSON Web Algorithms (JWA)"</span>, <span class="seriesInfo">RFC 7518</span>, <span class="seriesInfo">DOI 10.17487/RFC7518</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7518">https://www.rfc-editor.org/rfc/rfc7518</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8174">[RFC8174]</dt>
+        <dd>
+<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8174">https://www.rfc-editor.org/rfc/rfc8174</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8615">[RFC8615]</dt>
+        <dd>
+<span class="refAuthor">Nottingham, M.</span>, <span class="refTitle">"Well-Known Uniform Resource Identifiers (URIs)"</span>, <span class="seriesInfo">RFC 8615</span>, <span class="seriesInfo">DOI 10.17487/RFC8615</span>, <time datetime="2019-05" class="refDate">May 2019</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8615">https://www.rfc-editor.org/rfc/rfc8615</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9110">[RFC9110]</dt>
+        <dd>
+<span class="refAuthor">Fielding, R., Ed.</span>, <span class="refAuthor">Nottingham, M., Ed.</span>, and <span class="refAuthor">J. Reschke, Ed.</span>, <span class="refTitle">"HTTP Semantics"</span>, <span class="seriesInfo">STD 97</span>, <span class="seriesInfo">RFC 9110</span>, <span class="seriesInfo">DOI 10.17487/RFC9110</span>, <time datetime="2022-06" class="refDate">June 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9110">https://www.rfc-editor.org/rfc/rfc9110</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9525">[RFC9525]</dt>
+        <dd>
+<span class="refAuthor">Saint-Andre, P.</span> and <span class="refAuthor">R. Salz</span>, <span class="refTitle">"Service Identity in TLS"</span>, <span class="seriesInfo">RFC 9525</span>, <span class="seriesInfo">DOI 10.17487/RFC9525</span>, <time datetime="2023-11" class="refDate">November 2023</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9525">https://www.rfc-editor.org/rfc/rfc9525</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="WIMSE-CREDS">[WIMSE-CREDS]</dt>
+        <dd>
+<span class="refAuthor">Campbell, B.</span>, <span class="refAuthor">Salowey, J. A.</span>, <span class="refAuthor">Schwenkschuster, A.</span>, <span class="refAuthor">Sheffer, Y.</span>, and <span class="refAuthor">Y. Rosomakho</span>, <span class="refTitle">"WIMSE Workload Credentials"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-wimse-workload-creds-02</span>, <time datetime="2026-07-02" class="refDate">2 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-wimse-workload-creds-02">https://datatracker.ietf.org/doc/html/draft-ietf-wimse-workload-creds-02</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="WIMSE-ID">[WIMSE-ID]</dt>
+      <dd>
+<span class="refAuthor">Rosomakho, Y.</span> and <span class="refAuthor">J. A. Salowey</span>, <span class="refTitle">"Workload Identifier"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-wimse-identifier-02</span>, <time datetime="2026-03-02" class="refDate">2 March 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-wimse-identifier-02">https://datatracker.ietf.org/doc/html/draft-ietf-wimse-identifier-02</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="sec-informative-references">
+<section id="section-9.2">
+        <h3 id="name-informative-references">
+<a href="#section-9.2" class="section-number selfRef">9.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="I-D.ietf-wimse-arch">[I-D.ietf-wimse-arch]</dt>
+        <dd>
+<span class="refAuthor">Salowey, J. A.</span>, <span class="refAuthor">Rosomakho, Y.</span>, and <span class="refAuthor">H. Tschofenig</span>, <span class="refTitle">"Workload Identity in a Multi System Environment (WIMSE) Architecture"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-wimse-arch-07</span>, <time datetime="2026-03-02" class="refDate">2 March 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-wimse-arch-07">https://datatracker.ietf.org/doc/html/draft-ietf-wimse-arch-07</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="IANA.MEDIA.TYPES">[IANA.MEDIA.TYPES]</dt>
+        <dd>
+<span class="refAuthor">IANA</span>, <span class="refTitle">"Media Types"</span>, <span>&lt;<a href="https://www.iana.org/assignments/media-types">https://www.iana.org/assignments/media-types</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="IANA.WELL.KNOWN">[IANA.WELL.KNOWN]</dt>
+        <dd>
+<span class="refAuthor">IANA</span>, <span class="refTitle">"Well-Known URIs"</span>, <span>&lt;<a href="https://www.iana.org/assignments/well-known-uris">https://www.iana.org/assignments/well-known-uris</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="OIDC-DISCOVERY">[OIDC-DISCOVERY]</dt>
+        <dd>
+<span class="refAuthor">OpenID Foundation</span>, <span class="refTitle">"OpenID Connect Discovery 1.0"</span>, <span>n.d.</span>, <span>&lt;<a href="https://openid.net/specs/openid-connect-discovery-1_0.html">https://openid.net/specs/openid-connect-discovery-1_0.html</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8414">[RFC8414]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Sakimura, N.</span>, and <span class="refAuthor">J. Bradley</span>, <span class="refTitle">"OAuth 2.0 Authorization Server Metadata"</span>, <span class="seriesInfo">RFC 8414</span>, <span class="seriesInfo">DOI 10.17487/RFC8414</span>, <time datetime="2018-06" class="refDate">June 2018</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8414">https://www.rfc-editor.org/rfc/rfc8414</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9364">[RFC9364]</dt>
+        <dd>
+<span class="refAuthor">Hoffman, P.</span>, <span class="refTitle">"DNS Security Extensions (DNSSEC)"</span>, <span class="seriesInfo">BCP 237</span>, <span class="seriesInfo">RFC 9364</span>, <span class="seriesInfo">DOI 10.17487/RFC9364</span>, <time datetime="2023-02" class="refDate">February 2023</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9364">https://www.rfc-editor.org/rfc/rfc9364</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="SPIFFE-FEDERATION">[SPIFFE-FEDERATION]</dt>
+      <dd>
+<span class="refAuthor">CNCF SPIFFE Project</span>, <span class="refTitle">"The SPIFFE Federation Standard"</span>, <span>n.d.</span>, <span>&lt;<a href="https://github.com/spiffe/spiffe/blob/main/standards/SPIFFE_Federation.md">https://github.com/spiffe/spiffe/blob/main/standards/SPIFFE_Federation.md</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+<div id="document-history">
+<section id="appendix-A">
+      <h2 id="name-document-history">
+<a href="#appendix-A" class="section-number selfRef">Appendix A. </a><a href="#name-document-history" class="section-name selfRef">Document History</a>
+      </h2>
+<p id="appendix-A-1"><span class="cref">RFC Editor: please remove before publication.</span><a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<div id="draft-schwenkschuster-wimse-trust-domain-discovery-00">
+<section id="appendix-A.1">
+        <h3 id="name-draft-schwenkschuster-wimse">
+<a href="#appendix-A.1" class="section-number selfRef">A.1. </a><a href="#name-draft-schwenkschuster-wimse" class="section-name selfRef">draft-schwenkschuster-wimse-trust-domain-discovery-00</a>
+        </h3>
+<ul class="normal">
+<li class="normal" id="appendix-A.1-1.1">
+            <p id="appendix-A.1-1.1.1">Initial version.<a href="#appendix-A.1-1.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-A.1-1.2">
+            <p id="appendix-A.1-1.2.1">Define the WIMSE Trust Bundle format (JWK Set with <code>wimse-jwt</code> and <code>wimse-x509</code> use values, refresh hint, sequence number).<a href="#appendix-A.1-1.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-A.1-1.3">
+            <p id="appendix-A.1-1.3.1">Define discovery through a Trust Domain Metadata document at the <code>/.well-known/wimse-trust-domain</code> URI, referencing the trust bundle endpoint.<a href="#appendix-A.1-1.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-A.1-1.4">
+            <p id="appendix-A.1-1.4.1">Require Discoverable Trust Domains to be DNS names under the owner's control; exact-match resolution only.<a href="#appendix-A.1-1.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-A.1-1.5">
+            <p id="appendix-A.1-1.5.1">Normative precedence of locally provisioned trust anchors over discovered ones.<a href="#appendix-A.1-1.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-A.1-1.6">
+            <p id="appendix-A.1-1.6.1">Security considerations: discovery is not trust, Web PKI/DNS reliance, revocation latency, untrusted input handling, denial of service.<a href="#appendix-A.1-1.6.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+</section>
+</div>
+<div id="acknowledgments">
+<section id="appendix-B">
+      <h2 id="name-acknowledgments">
+<a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
+      </h2>
+<p id="appendix-B-1">TBD.<a href="#appendix-B-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-C">
+      <h2 id="name-authors-addresses">
+<a href="#name-authors-addresses" class="section-name selfRef">Authors' Addresses</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Arndt Schwenkschuster</span></div>
+<div dir="auto" class="left"><span class="org">Defakto Security</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:arndts.ietf@gmail.com" class="email">arndts.ietf@gmail.com</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Yaroslav Rosomakho</span></div>
+<div dir="auto" class="left"><span class="org">Zscaler</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:yrosomakho@zscaler.com" class="email">yrosomakho@zscaler.com</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>
