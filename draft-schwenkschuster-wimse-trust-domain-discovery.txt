@@ -4,8 +4,9 @@
 
 Workload Identity in Multi System Environments        A. Schwenkschuster
 Internet-Draft                                          Defakto Security
-Intended status: Standards Track                             3 July 2026
-Expires: 4 January 2027
+Intended status: Standards Track                            Y. Rosomakho
+Expires: 4 January 2027                                          Zscaler
+                                                             3 July 2026
 
 
                       WIMSE Trust Domain Discovery
@@ -104,7 +105,7 @@ Table of Contents
    Appendix A.  Document History
      A.1.  draft-schwenkschuster-wimse-trust-domain-discovery-00
    Acknowledgments
-   Author's Address
+   Authors' Addresses
 
 1.  Introduction
 
@@ -636,8 +637,13 @@ Acknowledgments
 
    TBD.
 
-Author's Address
+Authors' Addresses
 
    Arndt Schwenkschuster
    Defakto Security
    Email: arndts.ietf@gmail.com
+
+
+   Yaroslav Rosomakho
+   Zscaler
+   Email: yrosomakho@zscaler.com

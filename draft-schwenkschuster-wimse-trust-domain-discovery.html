@@ -6,6 +6,7 @@
 <meta content="initial-scale=1.0" name="viewport">
 <title>WIMSE Trust Domain Discovery</title>
 <meta content="Arndt Schwenkschuster" name="author">
+<meta content="Yaroslav Rosomakho" name="author">
 <meta content="
        The WIMSE architecture scopes workload identifiers to a trust domain. To validate a workload identity credential, a relying party must securely obtain the cryptographic trust anchors associated with the credential's trust domain. The WIMSE architecture requires that this mapping between a trust domain and its trust anchors is obtained through a secure mechanism, but leaves that mechanism undefined. 
        This document defines such a mechanism for open environments in which no prior trust relationship exists between the relying party and the trust domain. It specifies the WIMSE Trust Bundle, a document that conveys the trust anchors of a trust domain for both JWT-based and X.509-based workload identity credentials, and a discovery mechanism based on a well-known HTTPS endpoint that allows a relying party to resolve a trust domain name to its trust bundle on demand. 
@@ -1051,7 +1052,7 @@ svg {
 <td class="right">July 2026</td>
 </tr></thead>
 <tfoot><tr>
-<td class="left">Schwenkschuster</td>
+<td class="left">Schwenkschuster &amp; Rosomakho</td>
 <td class="center">Expires 4 January 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
@@ -1071,11 +1072,15 @@ svg {
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
 <dd class="expires"><time datetime="2027-01-04">4 January 2027</time></dd>
-<dt class="label-authors">Author:</dt>
+<dt class="label-authors">Authors:</dt>
 <dd class="authors">
 <div class="author">
       <div class="author-name">A. Schwenkschuster</div>
 <div class="org">Defakto Security</div>
+</div>
+<div class="author">
+      <div class="author-name">Y. Rosomakho</div>
+<div class="org">Zscaler</div>
 </div>
 </dd>
 </dl>
@@ -1249,7 +1254,7 @@ svg {
             <p id="section-toc.1-1.11.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
-            <p id="section-toc.1-1.12.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+            <p id="section-toc.1-1.12.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
 </li>
         </ul>
 </nav>
@@ -1713,8 +1718,8 @@ https://prod.example.com/.well-known/wimse-trust-domain
 </div>
 <div id="authors-addresses">
 <section id="appendix-C">
-      <h2 id="name-authors-address">
-<a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
+      <h2 id="name-authors-addresses">
+<a href="#name-authors-addresses" class="section-name selfRef">Authors' Addresses</a>
       </h2>
 <address class="vcard">
         <div dir="auto" class="left"><span class="fn nameRole">Arndt Schwenkschuster</span></div>
@@ -1722,6 +1727,14 @@ https://prod.example.com/.well-known/wimse-trust-domain
 <div class="email">
 <span>Email:</span>
 <a href="mailto:arndts.ietf@gmail.com" class="email">arndts.ietf@gmail.com</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Yaroslav Rosomakho</span></div>
+<div dir="auto" class="left"><span class="org">Zscaler</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:yrosomakho@zscaler.com" class="email">yrosomakho@zscaler.com</a>
 </div>
 </address>
 </section>
