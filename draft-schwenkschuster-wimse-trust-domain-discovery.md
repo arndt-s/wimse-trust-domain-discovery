@@ -24,9 +24,15 @@ venue:
 
 author:
  -
+    ins: A. Schwenkschuster
     fullname: "Arndt Schwenkschuster"
     organization: Defakto Security
     email: arndts.ietf@gmail.com
+ -
+    ins: Y. Rosomakho
+    name: Yaroslav Rosomakho
+    email: yrosomakho@zscaler.com
+    org: Zscaler
 
 normative:
   RFC7517:
