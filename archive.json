@@ -1,0 +1,87 @@
+{
+  "magic": "E!vIA5L86J2I",
+  "timestamp": "2026-07-05T01:51:09.201249+00:00",
+  "repo": "arndt-s/wimse-trust-domain-discovery",
+  "labels": [
+    {
+      "name": "bug",
+      "description": "Something isn't working",
+      "color": "d73a4a"
+    },
+    {
+      "name": "documentation",
+      "description": "Improvements or additions to documentation",
+      "color": "0075ca"
+    },
+    {
+      "name": "duplicate",
+      "description": "This issue or pull request already exists",
+      "color": "cfd3d7"
+    },
+    {
+      "name": "enhancement",
+      "description": "New feature or request",
+      "color": "a2eeef"
+    },
+    {
+      "name": "good first issue",
+      "description": "Good for newcomers",
+      "color": "7057ff"
+    },
+    {
+      "name": "help wanted",
+      "description": "Extra attention is needed",
+      "color": "008672"
+    },
+    {
+      "name": "invalid",
+      "description": "This doesn't seem right",
+      "color": "e4e669"
+    },
+    {
+      "name": "question",
+      "description": "Further information is requested",
+      "color": "d876e3"
+    },
+    {
+      "name": "wontfix",
+      "description": "This will not be worked on",
+      "color": "ffffff"
+    }
+  ],
+  "issues": [
+    {
+      "number": 1,
+      "id": "I_kwDOTMksrM8AAAABHk-KWA",
+      "title": "Interop with SPIFFE Federation & Bundle spec",
+      "url": "https://github.com/arndt-s/wimse-trust-domain-discovery/issues/1",
+      "state": "OPEN",
+      "author": "arndt-s",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "- Is a WIMSE Bundle Endpoint compatible with a SPIFFE Federation Endpoint (`webpki` profile)?\n- Should we allow SPIFFE JWK `use` values in here for interop reasons?\n",
+      "createdAt": "2026-07-03T12:36:38Z",
+      "updatedAt": "2026-07-03T12:36:38Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 2,
+      "id": "I_kwDOTMksrM8AAAABHk-lFw",
+      "title": "Marker to disable runtime discovery",
+      "url": "https://github.com/arndt-s/wimse-trust-domain-discovery/issues/2",
+      "state": "OPEN",
+      "author": "arndt-s",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "Existing deployments that have used a DNS entry they don't own should be able to add a marker to their credentials that explicitly forbids performing on demand key discovery.",
+      "createdAt": "2026-07-03T12:37:38Z",
+      "updatedAt": "2026-07-03T12:37:38Z",
+      "closedAt": null,
+      "comments": []
+    }
+  ],
+  "pulls": []
+}
