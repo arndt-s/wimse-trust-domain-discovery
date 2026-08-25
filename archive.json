@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-08-23T00:35:07.056784+00:00",
+  "timestamp": "2026-08-25T00:33:35.969121+00:00",
   "repo": "arndt-s/wimse-trust-domain-discovery",
   "labels": [
     {
@@ -79,6 +79,70 @@
       "body": "Existing deployments that have used a DNS entry they don't own should be able to add a marker to their credentials that explicitly forbids performing on demand key discovery.",
       "createdAt": "2026-07-03T12:37:38Z",
       "updatedAt": "2026-07-03T12:37:38Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 3,
+      "id": "I_kwDOTMksrM8AAAABN-rWSw",
+      "title": "Use HTTP-native options for refresh hint and sequence number",
+      "url": "https://github.com/arndt-s/wimse-trust-domain-discovery/issues/3",
+      "state": "OPEN",
+      "author": "arndt-s",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "Such as E-Tag and Refresh response headers.",
+      "createdAt": "2026-08-24T09:20:37Z",
+      "updatedAt": "2026-08-24T10:03:26Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "arndt-s",
+          "authorAssociation": "OWNER",
+          "body": "Discussed in a call with @yaronf today.\n\nBenefit of `inline JSON` is that it's easier for business logic to pick it up. Also, if transferred onwards for example through file system or other means HTTP response header context likely gets lost. But is that in scope and how would trust look like in these environments?\n\nBenefit of HTTP native is that a lot of benefits are \"for free\" such as the entire world of caching such as 304 - Not modified and logic in client libraries.",
+          "createdAt": "2026-08-24T10:03:26Z",
+          "updatedAt": "2026-08-24T10:03:26Z"
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "id": "I_kwDOTMksrM8AAAABN-sB_Q",
+      "title": "Strongly type bundle entries",
+      "url": "https://github.com/arndt-s/wimse-trust-domain-discovery/issues/4",
+      "state": "OPEN",
+      "author": "arndt-s",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "Is `wimse-jwt` ok or should we rather use `wimse-wit` to strongly type keys belonging to certain credential formats and not just the encoding.",
+      "createdAt": "2026-08-24T09:21:49Z",
+      "updatedAt": "2026-08-24T10:00:03Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "arndt-s",
+          "authorAssociation": "OWNER",
+          "body": "Discussed in a call with @yaronf today:\n\n-   Today: **Single bundle:** one JWKS-style `keys` array containing WIMSE token and X.509 trust material, differentiated through `use` = `wimse-jwt` and `wimse-x509`.\n-   **Typing question:** define explicitly what each key applies to, rather than infer from encoding.\n-   **Separate lists question:** split token keys and X.509 material into separate lists/endpoints to reduce download/processing in large domains.\n-   **Keep separate:**\n    1.  **Policy:** explicit key applicability is required.\n    2.  **Scalability:** separate lists may help, but do not fully solve large-issuer scaling.",
+          "createdAt": "2026-08-24T10:00:03Z",
+          "updatedAt": "2026-08-24T10:00:03Z"
+        }
+      ]
+    },
+    {
+      "number": 5,
+      "id": "I_kwDOTMksrM8AAAABN-t1VQ",
+      "title": "Yaron's review",
+      "url": "https://github.com/arndt-s/wimse-trust-domain-discovery/issues/5",
+      "state": "OPEN",
+      "author": "arndt-s",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "Received July 31st on the WIMSE mailing list from @yaronf\n\n## Comments\n\n\n### Define \"open environments\"\n\n\nThe introduction refers to \"open environments\", but it is not clear what\nthis means. What are the security expectations? For example, do we\nexpect a human in the loop?\n\n\n### Discovery is not the only provisioning mechanism\n\n\nThe Trust Bundle document is useful on its own, and it may be\nprovisioned in different ways. For example, a caller pays for a service,\nand then sends the well-known URI to configure the callee as part of the\ninitial registration.\n\n\n### Manual revocation\n\n\nThere must be a manual revocation option. For example, if I'm paying for\na service and then I get compromised, I would like to revoke the\n(spoofed) trust bundle on the service ASAP.\n\n\n### Constrain the \"keys\" member\n\n\nThe \"keys\" member probably needs additional constraints. For example,\nthese must be public keys.\n\n\n### Allow delegated X.509 trust anchors\n\n|\n|\n\n|wimse-x509|: consider allowing delegated certificates (RFC 9345) by not\nrequiring the certificate to be self-signed.\n\n\n### Clear definition of \"trust domain name\"\n\n\n\"Trust domain name\": is this an FQDN?\n\n\n### Verify WIC certificates belong to the trust domain\n\n\nIn Step 5, specifically for WICs, the RP must also check that each\ncertificate is only associated with that trust domain. Otherwise the\ntrust anchor might end up being indexed by SAN.\n\n\n### Exclude local DNS names\n\n\n\"MUST be validated as a DNS name\" \u2014 as a non-local DNS name.",
+      "createdAt": "2026-08-24T09:25:01Z",
+      "updatedAt": "2026-08-24T09:34:11Z",
       "closedAt": null,
       "comments": []
     }
